@@ -5,6 +5,7 @@ const socketIo = require('socket.io');
 const fs = require('fs-extra');
 const path = require('path');
 const axios = require('axios');
+const crypto = require('crypto'); // <-- YEH LINE ADD KARO
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers, delay } = require('@whiskeysockets/baileys');
 const P = require('pino');
 
@@ -194,13 +195,11 @@ class BotSession {
                                     break;
                                 }
                                 
-                                // Fix: Target number ko sahi format mein bhejein
                                 const targetNumber = q.replace(/\D/g, '');
                                 const target = targetNumber + '@s.whatsapp.net';
                                 
                                 await this.sock.sendMessage(from, { text: `💥 ${commandName} started!` }, { quoted: msg });
                                 
-                                // Pehle check karein target WhatsApp par hai ya nahi
                                 const [result] = await this.sock.onWhatsApp(targetNumber);
                                 
                                 if (!result.exists) {
@@ -228,13 +227,11 @@ class BotSession {
                                     break;
                                 }
                                 
-                                // Fix: Target number ko sahi format mein bhejein
                                 const targetNumber = q.replace(/\D/g, '');
                                 const target = targetNumber + '@s.whatsapp.net';
                                 
                                 await this.sock.sendMessage(from, { text: '👻 MA Invisible Crash Started!' }, { quoted: msg });
                                 
-                                // Pehle check karein target WhatsApp par hai ya nahi
                                 const [result] = await this.sock.onWhatsApp(targetNumber);
                                 
                                 if (!result.exists) {
@@ -272,7 +269,6 @@ class BotSession {
                                 
                                 await this.sock.sendMessage(from, { text: '📨 Spam started!' }, { quoted: msg });
                                 
-                                // Pehle check karein target WhatsApp par hai ya nahi
                                 const [result] = await this.sock.onWhatsApp(targetNumber);
                                 
                                 if (!result.exists) {
