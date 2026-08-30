@@ -1,11 +1,11 @@
 require('dotenv').config();
+const crypto = require('crypto'); // <-- TOP PAR ADD KIYA
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const fs = require('fs-extra');
 const path = require('path');
 const axios = require('axios');
-const crypto = require('crypto'); // <-- YEH LINE ADD KI HAI
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers, delay } = require('@whiskeysockets/baileys');
 const P = require('pino');
 
