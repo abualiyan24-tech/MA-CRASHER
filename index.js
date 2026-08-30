@@ -1,15 +1,30 @@
+const nodeCrypto = require('crypto');
+
+if (!globalThis.crypto) {
+    globalThis.crypto = nodeCrypto.webcrypto;
+}
+
 require('dotenv').config();
-const crypto = require('crypto');
-global.crypto = crypto;
+
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const fs = require('fs-extra');
 const path = require('path');
 const axios = require('axios');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers, delay } = require('@whiskeysockets/baileys');
-const P = require('pino');
 
+const {
+    default: makeWASocket,
+    useMultiFileAuthState,
+    DisconnectReason,
+    fetchLatestBaileysVersion,
+    makeCacheableSignalKeyStore,
+    jidNormalizedUser,
+    Browsers,
+    delay
+} = require('@whiskeysockets/baileys');
+
+const P = require('pino');
 const settings = require('./settings');
 
 const app = express();
