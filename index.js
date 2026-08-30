@@ -1,7 +1,6 @@
 require('dotenv').config();
 const crypto = require('crypto');
 global.crypto = crypto;
-global.crypto.randomBytes = crypto.randomBytes;
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
