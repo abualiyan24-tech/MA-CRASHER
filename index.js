@@ -5,7 +5,7 @@ const socketIo = require('socket.io');
 const fs = require('fs-extra');
 const path = require('path');
 const axios = require('axios');
-const crypto = require('crypto'); // <-- YEH LINE ADD KARO
+const crypto = require('crypto'); // <-- YEH LINE ADD KI HAI
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, jidNormalizedUser, Browsers, delay } = require('@whiskeysockets/baileys');
 const P = require('pino');
 
@@ -100,9 +100,8 @@ class BotSession {
                         const isGroup = from.endsWith('@g.us');
                         const text = (msg.message?.conversation || msg.message?.extendedTextMessage?.text || '').trim();
                         
-                        // Fix: Bot apne number par bhi commands sunega
                         const isMe = msg.key.fromMe;
-                        if (isMe) continue; // Bot ke apne messages ko ignore karein
+                        if (isMe) continue;
                         
                         if (!text || !text.startsWith(settings.prefix)) continue;
                         const commandName = text.slice(1).split(' ')[0];
@@ -115,7 +114,6 @@ class BotSession {
                         const ownerNumbers = String(settings.ownerNumber).split(',').map(n => n.replace(/\D/g, ''));
                         const isOwner = ownerNumbers.some(on => senderClean === on) || senderClean === botNumberClean;
 
-                        // Anti-Link
                         if (isGroup && this.antilink && !isOwner) {
                             if (/https?:\/\//i.test(text) || /chat\.whatsapp\.com/i.test(text)) {
                                 await this.sock.sendMessage(from, { delete: msg.key });
