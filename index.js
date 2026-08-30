@@ -1,6 +1,6 @@
 require('dotenv').config();
 const crypto = require('crypto');
-global.crypto = crypto; // <-- GLOBAL DEFINE KIYA
+global.crypto = crypto;
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
