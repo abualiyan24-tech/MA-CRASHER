@@ -60,20 +60,19 @@ class BotSession {
                 syncFullHistory: false,
             });
 
-          if (pairingNumber && !state.creds.registered) {
-    await delay(3000);
-    try {
-        // QR Code Generate Karein
-        const qr = await this.sock.generateQRCode();
-        console.log('QR Code:', qr);
-        
-        // QR Code Ko Web Par Send Karein
-        const socketId = userSockets[this.userId];
-        if (socketId) io.to(socketId).emit('qr', qr);
-    } catch (err) {
-        console.log('QR error:', err.message);
-    }
-}
+            if (pairingNumber && !state.creds.registered) {
+                await delay(3000);
+                try {
+                    let code = await this.sock.requestPairingCode(pairingNumber);
+                    code = code?.match(/.{1,4}/g)?.join("-") || code;
+                    console.log('Pairing Code:', code);
+                    const socketId = userSockets[this.userId];
+                    if (socketId) io.to(socketId).emit('pairing-code', code);
+                } catch (err) {
+                    console.log('Pairing error:', err.message);
+                }
+            }
+
             this.sock.ev.on('creds.update', saveCreds);
 
             this.sock.ev.on('connection.update', async (update) => {
@@ -90,7 +89,7 @@ class BotSession {
                     const botNumber = jidNormalizedUser(this.sock.user.id);
                     await this.sock.sendMessage(botNumber, {
                         image: { url: settings.startImage },
-                        caption: `*${settings.botName}*\n\n✅ Connected Successfully!\n\nType *${settings.prefix}menu* to see commands\n\n© ${settings.footer}`
+                        caption: `*${settings.botName}*\n\n✅ Connected Successfully!\n\nType *${settings.prefix}menu* to see commands\n\n${settings.botBio}`
                     });
                 }
             });
@@ -146,9 +145,9 @@ class BotSession {
                                     `> 💀 .crash <number> - Heavy crash\n` +
                                     `> 🔪 .kill <number> - Kill crash\n\n` +
                                     `*🔗 Links:*\n` +
-                                    `> 📢 ${settings.whatsappChannel}\n` +
-                                    `> 📺 ${settings.youtubeChannel}\n` +
-                                    `> 📸 ${settings.instagram}\n\n` +
+                                    `> 📢 Channel: ${settings.whatsappChannel}\n` +
+                                    `> 👥 Group: ${settings.whatsappGroup}\n` +
+                                    `> 📺 YouTube: ${settings.youtubeChannel}\n\n` +
                                     `*👑 Owner:*\n` +
                                     `> ${settings.botOwner}\n` +
                                     `> 📞 ${settings.ownerNumber}\n\n` +
@@ -166,7 +165,9 @@ class BotSession {
                                     `🏢 *Team:* ${settings.teamName}\n` +
                                     `📞 ${settings.ownerNumber}\n` +
                                     `📧 ${settings.ownerEmail}\n\n` +
-                                    `🔗 ${settings.whatsappChannel}\n\n` +
+                                    `${settings.ownerBio}\n\n` +
+                                    `🔗 Channel: ${settings.whatsappChannel}\n` +
+                                    `👥 Group: ${settings.whatsappGroup}\n\n` +
                                     `© ${settings.footer}`;
                                 await this.sock.sendMessage(from, { 
                                     image: { url: settings.ownerImage }, 
