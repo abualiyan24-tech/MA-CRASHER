@@ -1,21 +1,13 @@
 {
-  "name": "ma-crasher",
-  "version": "2.0.0",
-  "description": "MA CRASHER - Advanced WhatsApp Bot",
+  "name": "whatsapp-pairing-test",
+  "version": "1.0.0",
+  "description": "Simple WhatsApp Pairing Test Bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "6.0.0-rc.10",
-    "axios": "^1.6.0",
-    "dotenv": "^16.0.3",
-    "express": "^4.18.2",
-    "fs-extra": "^11.1.1",
-    "pino": "^8.15.0",
-    "socket.io": "^4.6.1"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "@whiskeysockets/baileys": "^6.7.9",
+    "express": "^4.21.2"
   }
 }
