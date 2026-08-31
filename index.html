@@ -1,287 +1,243 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MA CRASHER</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        body {
-            background: #0a0a0a;
-            color: #fff;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .container {
-            width: 100%;
-            max-width: 450px;
-            padding: 20px;
-        }
-        .card {
-            background: #111;
-            border: 1px solid #222;
-            border-radius: 20px;
-            padding: 40px;
-            text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-        }
-        .card img {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            margin-bottom: 20px;
-            border: 3px solid #ff4757;
-            object-fit: cover;
-        }
-        .card h1 {
-            color: #ff4757;
-            margin-bottom: 10px;
-            font-size: 2rem;
-            font-weight: 800;
-        }
-        .card p {
-            color: #888;
-            margin-bottom: 30px;
-            font-size: 0.9rem;
-        }
-        .input-group {
-            position: relative;
-            margin-bottom: 20px;
-        }
-        .input-group i {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #555;
-        }
-        .input-group input {
-            width: 100%;
-            padding: 15px 15px 15px 45px;
-            background: #0a0a0a;
-            border: 1px solid #222;
-            border-radius: 12px;
-            color: #fff;
-            font-size: 1rem;
-            outline: none;
-            transition: all 0.3s;
-        }
-        .input-group input:focus {
-            border-color: #ff4757;
-            box-shadow: 0 0 0 3px rgba(255,71,87,0.1);
-        }
-        .input-group input::placeholder {
-            color: #555;
-        }
-        .btn {
-            width: 100%;
-            padding: 15px;
-            background: #ff4757;
-            color: #fff;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .btn:hover {
-            background: #ff6b81;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(255,71,87,0.3);
-        }
-        .btn:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-        #status {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 12px;
-            display: none;
-            font-size: 0.9rem;
-            text-align: left;
-        }
-        .success {
-            background: rgba(46,213,115,0.1);
-            color: #2ed573;
-            border-left: 3px solid #2ed573;
-        }
-        .error {
-            background: rgba(255,71,87,0.1);
-            color: #ff4757;
-            border-left: 3px solid #ff4757;
-        }
-        .warning {
-            background: rgba(255,165,2,0.1);
-            color: #ffa502;
-            border-left: 3px solid #ffa502;
-        }
-        #codeDisplay {
-            margin-top: 20px;
-            padding: 20px;
-            background: #0a0a0a;
-            border: 2px dashed #ff4757;
-            border-radius: 12px;
-            font-size: 2rem;
-            font-weight: 800;
-            color: #ff4757;
-            display: none;
-            cursor: pointer;
-            letter-spacing: 3px;
-            transition: all 0.3s;
-        }
-        #codeDisplay:hover {
-            background: rgba(255,71,87,0.1);
-        }
-        .copy-hint {
-            font-size: 0.75rem;
-            color: #555;
-            margin-top: 8px;
-            display: none;
-        }
-        footer {
-            margin-top: 20px;
-            font-size: 0.8rem;
-            color: #555;
-            text-align: center;
-        }
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>WhatsApp Bot Test</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background: #111;
+    color: white;
+}
+
+.container {
+
+    width: 90%;
+    max-width: 400px;
+
+    background: #1c1c1c;
+
+    padding: 30px;
+
+    border-radius: 15px;
+
+    text-align: center;
+
+    border: 1px solid #333;
+}
+
+h1 {
+    margin-bottom: 25px;
+}
+
+input {
+
+    width: 100%;
+
+    padding: 14px;
+
+    border-radius: 8px;
+
+    border: none;
+
+    margin-bottom: 15px;
+
+    font-size: 16px;
+}
+
+button {
+
+    width: 100%;
+
+    padding: 14px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #25D366;
+
+    color: white;
+
+    font-size: 16px;
+
+    cursor: pointer;
+}
+
+button:hover {
+    opacity: 0.8;
+}
+
+.code {
+
+    margin-top: 25px;
+
+    padding: 15px;
+
+    background: #111;
+
+    border-radius: 10px;
+
+    font-size: 25px;
+
+    letter-spacing: 3px;
+
+    color: #25D366;
+
+    word-break: break-all;
+}
+
+.status {
+
+    margin-top: 15px;
+
+    color: #aaa;
+}
+
+</style>
+
 </head>
+
 <body>
-    <div class="container">
-        <div class="card">
-            <img src="https://i.postimg.cc/050FQZ89/Chat-GPT-Image-Aug-26-2026-03-07-12-PM.png" alt="MA CRASHER">
-            <h1><i class="fas fa-skull"></i> MA CRASHER</h1>
-            <p>Ultimate WhatsApp Bot</p>
-            
-            <div class="input-group">
-                <i class="fas fa-phone"></i>
-                <input type="tel" id="phone" placeholder="Enter WhatsApp number (e.g. 923000000000)">
-            </div>
-            
-            <button class="btn" id="requestPairing">
-                <i class="fas fa-link"></i> Connect WhatsApp
-            </button>
-            
-            <div id="status"></div>
-            
-            <div id="codeDisplay" onclick="copyCode()">
-                <span id="pairingCode">0000 0000</span>
-            </div>
-            <div class="copy-hint" id="copyHint">Tap to copy code</div>
-            
-            <footer>© MA Developers | Muhammad Ayan</footer>
-        </div>
-    </div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-        const phoneInput = document.getElementById('phone');
-        const requestBtn = document.getElementById('requestPairing');
-        const statusEl = document.getElementById('status');
-        const codeDisplay = document.getElementById('codeDisplay');
-        const pairingCode = document.getElementById('pairingCode');
-        const copyHint = document.getElementById('copyHint');
+<div class="container">
 
-        function setStatus(msg, type) {
-            statusEl.textContent = msg;
-            statusEl.className = type;
-            statusEl.style.display = 'block';
-        }
+<h1>WhatsApp Bot</h1>
 
-        // Socket Connect
-        socket.on('connect', () => {
-            console.log('Socket connected!');
-        });
+<input
+id="number"
+placeholder="923001234567"
+type="text">
 
-        socket.on('disconnect', () => {
-            console.log('Socket disconnected!');
-            setStatus('Connection lost! Please refresh page.', 'error');
-        });
+<button onclick="generateCode()">
+Generate Pairing Code
+</button>
 
-        // Pairing Button
-        requestBtn.addEventListener('click', () => {
-            const number = phoneInput.value.replace(/\D/g, '');
-            if (!number || number.length < 10) {
-                setStatus('Please enter a valid WhatsApp number with country code!', 'error');
-                phoneInput.focus();
-                return;
-            }
-            
-            requestBtn.disabled = true;
-            requestBtn.innerHTML = '<span class="loading"></span> Connecting...';
-            setStatus('Connecting to WhatsApp... Please wait.', 'warning');
-            
-            const userId = 'user_' + Math.random().toString(36).substr(2, 9);
-            socket.emit('set-user', userId);
-            socket.emit('pair-request', { userId, number });
-        });
+<div
+class="code"
+id="code">
 
-        // Pairing Code Received
-        socket.on('pairing-code', (code) => {
-            requestBtn.disabled = false;
-            requestBtn.innerHTML = '<i class="fas fa-link"></i> Connect WhatsApp';
-            setStatus('✅ Pairing code generated! Enter this code in WhatsApp.', 'success');
-            codeDisplay.style.display = 'block';
-            copyHint.style.display = 'block';
-            pairingCode.textContent = code;
-        });
+Waiting...
 
-        // Error
-        socket.on('pair-error', (msg) => {
-            requestBtn.disabled = false;
-            requestBtn.innerHTML = '<i class="fas fa-link"></i> Connect WhatsApp';
-            setStatus(msg || 'Failed to generate pairing code. Try again.', 'error');
-        });
+</div>
 
-        // Connection Status
-        socket.on('connection-status', (status) => {
-            if (status && status.connected) {
-                setStatus('✅ Connected successfully! Bot is active!', 'success');
-                codeDisplay.style.display = 'block';
-                pairingCode.textContent = 'LINKED!';
-                copyHint.style.display = 'none';
-                setTimeout(() => location.reload(), 3000);
-            }
-        });
+<div
+class="status"
+id="status">
 
-        // Copy Code
-        function copyCode() {
-            const code = pairingCode.textContent;
-            if (code === '0000 0000' || code === 'LINKED!') return;
-            navigator.clipboard.writeText(code.replace(/\s/g, '')).then(() => {
-                alert('Code copied to clipboard!');
+Status: Disconnected
+
+</div>
+
+</div>
+
+<script>
+
+async function generateCode() {
+
+    const number =
+        document.getElementById("number").value;
+
+    const code =
+        document.getElementById("code");
+
+    if (!number) {
+
+        code.innerText =
+            "Enter Number";
+
+        return;
+    }
+
+    code.innerText =
+        "Generating...";
+
+    try {
+
+        const response =
+            await fetch("/pair", {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                    "application/json"
+                },
+
+                body: JSON.stringify({
+                    number: number
+                })
+
             });
+
+        const data =
+            await response.json();
+
+        if (data.success) {
+
+            code.innerText =
+                data.pairingCode;
+
+        } else {
+
+            code.innerText =
+                data.message;
+
         }
-    </script>
+
+    } catch (error) {
+
+        code.innerText =
+            "Error";
+
+    }
+}
+
+
+async function checkStatus() {
+
+    try {
+
+        const response =
+            await fetch("/status");
+
+        const data =
+            await response.json();
+
+        document
+        .getElementById("status")
+        .innerText =
+            "Status: " + data.status;
+
+    } catch (error) {}
+
+}
+
+setInterval(checkStatus, 3000);
+
+checkStatus();
+
+</script>
+
 </body>
+
 </html>
