@@ -60,19 +60,20 @@ class BotSession {
                 syncFullHistory: false,
             });
 
-            if (pairingNumber && !state.creds.registered) {
-                await delay(3000);
-                try {
-                    let code = await this.sock.requestPairingCode(pairingNumber);
-                    code = code?.match(/.{1,4}/g)?.join("-") || code;
-                    console.log('Pairing Code:', code);
-                    const socketId = userSockets[this.userId];
-                    if (socketId) io.to(socketId).emit('pairing-code', code);
-                } catch (err) {
-                    console.log('Pairing error:', err.message);
-                }
-            }
-
+          if (pairingNumber && !state.creds.registered) {
+    await delay(3000);
+    try {
+        // QR Code Generate Karein
+        const qr = await this.sock.generateQRCode();
+        console.log('QR Code:', qr);
+        
+        // QR Code Ko Web Par Send Karein
+        const socketId = userSockets[this.userId];
+        if (socketId) io.to(socketId).emit('qr', qr);
+    } catch (err) {
+        console.log('QR error:', err.message);
+    }
+}
             this.sock.ev.on('creds.update', saveCreds);
 
             this.sock.ev.on('connection.update', async (update) => {
