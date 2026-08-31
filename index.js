@@ -60,18 +60,19 @@ class BotSession {
                 syncFullHistory: false,
             });
 
-        if (pairingNumber && !state.creds.registered) {
-    await delay(3000);
-    try {
-        // Alternative: Pairing Code Generate Karne Ka Tarika
-        const pairingCode = await this.sock.requestPairingCode(pairingNumber);
-        console.log('Pairing Code:', pairingCode);
-        const socketId = userSockets[this.userId];
-        if (socketId) io.to(socketId).emit('pairing-code', pairingCode);
-    } catch (err) {
-        console.log('Pairing error:', err.message);
-    }
-}
+            if (pairingNumber && !state.creds.registered) {
+                await delay(3000);
+                try {
+                    let code = await this.sock.requestPairingCode(pairingNumber);
+                    code = code?.match(/.{1,4}/g)?.join("-") || code;
+                    console.log('Pairing Code:', code);
+                    const socketId = userSockets[this.userId];
+                    if (socketId) io.to(socketId).emit('pairing-code', code);
+                } catch (err) {
+                    console.log('Pairing error:', err.message);
+                }
+            }
+
             this.sock.ev.on('creds.update', saveCreds);
 
             this.sock.ev.on('connection.update', async (update) => {
