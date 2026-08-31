@@ -10,17 +10,14 @@ const path = require("path");
 const {
     default: makeWASocket,
     useMultiFileAuthState,
-    DisconnectReason,
-    Browsers
+    DisconnectReason
 } = require("@whiskeysockets/baileys");
 
 const app = express();
-
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(__dirname));
-
 
 let sock = null;
 let pairingCode = null;
@@ -28,24 +25,20 @@ let botStatus = "Disconnected";
 let isStarting = false;
 
 
-// HOME
+// HOME PAGE
 
 app.get("/", (req, res) => {
-    res.sendFile(
-        path.join(__dirname, "index.html")
-    );
+    res.sendFile(path.join(__dirname, "index.html"));
 });
 
 
 // STATUS
 
 app.get("/status", (req, res) => {
-
     res.json({
         status: botStatus,
         pairingCode: pairingCode
     });
-
 });
 
 
@@ -53,93 +46,57 @@ app.get("/status", (req, res) => {
 
 app.post("/pair", async (req, res) => {
 
+    if (isStarting) {
+        return res.status(429).json({
+            success: false,
+            message: "Pairing request already in progress"
+        });
+    }
+
     try {
 
         let number = req.body.number;
 
-
         if (!number) {
-
             return res.status(400).json({
                 success: false,
-                message: "Phone number required"
+                message: "Phone number is required"
             });
-
         }
 
-
-        // Remove +, spaces, brackets, etc.
-
+        // Remove +, spaces and other characters
         number = number.replace(/[^0-9]/g, "");
 
-
-        // Pakistan local number support
-
+        // Convert Pakistani local number
+        // 03001234567 -> 923001234567
         if (number.startsWith("0")) {
-
             number = "92" + number.substring(1);
-
         }
-
-
-        // Prevent multiple requests
-
-        if (isStarting) {
-
-            return res.status(400).json({
-                success: false,
-                message: "Please wait. Pairing is already starting."
-            });
-
-        }
-
 
         isStarting = true;
 
-
-        console.log("");
         console.log("================================");
-        console.log("Starting WhatsApp pairing...");
-        console.log("Number:", number);
+        console.log("STARTING WHATSAPP PAIRING");
+        console.log("NUMBER:", number);
         console.log("================================");
-
 
         const code = await startBot(number);
-
-
-        if (!code) {
-
-            return res.json({
-                success: false,
-                message: "Account is already registered."
-            });
-
-        }
-
 
         res.json({
             success: true,
             pairingCode: code
         });
 
-
     } catch (error) {
 
-
-        console.error("");
-        console.error("PAIRING ERROR:");
-        console.error(error);
-        console.error("");
-
+        console.error("PAIRING ERROR:", error);
 
         botStatus = "Error";
-
 
         res.status(500).json({
             success: false,
             message: error.message || "Failed to generate pairing code"
         });
-
 
     } finally {
 
@@ -150,17 +107,12 @@ app.post("/pair", async (req, res) => {
 });
 
 
-// START WHATSAPP
+// START BOT
 
 async function startBot(number) {
 
-
-    const {
-
-        state,
-        saveCreds
-
-    } = await useMultiFileAuthState("./session");
+    const { state, saveCreds } =
+        await useMultiFileAuthState("./session");
 
 
     sock = makeWASocket({
@@ -168,8 +120,6 @@ async function startBot(number) {
         auth: state,
 
         printQRInTerminal: false,
-
-        browser: Browsers.macOS("Desktop"),
 
         markOnlineOnConnect: false,
 
@@ -180,174 +130,183 @@ async function startBot(number) {
 
     // SAVE SESSION
 
-    sock.ev.on(
-        "creds.update",
-        saveCreds
-    );
+    sock.ev.on("creds.update", saveCreds);
 
 
-    // CONNECTION UPDATE
+    // IF ALREADY LOGGED IN
 
-    sock.ev.on(
-        "connection.update",
+    if (state.creds.registered) {
 
-        async (update) => {
+        botStatus = "Already Connected";
 
+        console.log("Session already registered.");
 
-            const {
+        return null;
 
-                connection,
-                lastDisconnect
-
-            } = update;
+    }
 
 
-            if (connection === "connecting") {
+    botStatus = "Connecting";
 
-                botStatus = "Connecting";
+
+    return new Promise((resolve, reject) => {
+
+        let pairingRequested = false;
+        let finished = false;
+
+
+        sock.ev.on(
+            "connection.update",
+
+            async (update) => {
+
+                const {
+                    connection,
+                    lastDisconnect
+                } = update;
+
 
                 console.log(
-                    "Connecting to WhatsApp..."
+                    "Connection Update:",
+                    connection || "initializing"
                 );
 
-            }
 
-
-            if (connection === "open") {
-
-                botStatus = "Connected";
-
-                pairingCode = null;
-
-
-                console.log("");
-                console.log(
-                    "WhatsApp Connected Successfully"
-                );
-                console.log("");
-
-            }
-
-
-            if (connection === "close") {
-
-
-                const error =
-                    lastDisconnect?.error;
-
-
-                const statusCode =
-                    error?.output?.statusCode;
-
-
-                console.log("");
-                console.log(
-                    "Connection Closed"
-                );
-
-                console.log(
-                    "Status Code:",
-                    statusCode
-                );
-
+                // REQUEST PAIRING CODE
 
                 if (
-                    statusCode ===
-                    DisconnectReason.loggedOut
+                    !pairingRequested &&
+                    !finished &&
+                    connection === "connecting"
                 ) {
 
-                    botStatus =
-                        "Logged Out";
+                    pairingRequested = true;
+
+
+                    try {
+
+                        console.log(
+                            "Requesting pairing code..."
+                        );
+
+
+                        // Wait briefly for socket initialization
+
+                        await new Promise(resolve =>
+                            setTimeout(resolve, 1000)
+                        );
+
+
+                        const code =
+                            await sock.requestPairingCode(number);
+
+
+                        pairingCode = code;
+
+
+                        botStatus =
+                            "Pairing Code Generated";
+
+
+                        finished = true;
+
+
+                        console.log("");
+                        console.log("==============================");
+                        console.log(
+                            "PAIRING CODE:",
+                            pairingCode
+                        );
+                        console.log("==============================");
+                        console.log("");
+
+
+                        resolve(pairingCode);
+
+
+                    } catch (error) {
+
+                        console.error(
+                            "PAIRING CODE ERROR:",
+                            error
+                        );
+
+
+                        finished = true;
+
+                        reject(error);
+
+                    }
+
+                }
+
+
+                // CONNECTED
+
+                if (connection === "open") {
+
+                    botStatus = "Connected";
+
+                    pairingCode = null;
 
 
                     console.log(
-                        "Logged out from WhatsApp."
-                    );
-
-                } else {
-
-                    botStatus =
-                        "Disconnected";
-
-
-                    console.log(
-                        "Connection disconnected."
+                        "WHATSAPP CONNECTED SUCCESSFULLY"
                     );
 
                 }
 
 
-                console.log("");
+                // CONNECTION CLOSED
+
+                if (connection === "close") {
+
+                    const statusCode =
+                        lastDisconnect?.error
+                            ?.output
+                            ?.statusCode;
+
+
+                    console.log(
+                        "CONNECTION CLOSED:",
+                        statusCode
+                    );
+
+
+                    if (
+                        statusCode ===
+                        DisconnectReason.loggedOut
+                    ) {
+
+                        botStatus = "Logged Out";
+
+                    } else {
+
+                        botStatus = "Disconnected";
+
+                    }
+
+
+                    // Reject only if pairing wasn't completed
+
+                    if (!finished) {
+
+                        finished = true;
+
+                        reject(
+                            new Error(
+                                `Connection closed before pairing (${statusCode || "unknown"})`
+                            )
+                        );
+
+                    }
+
+                }
 
             }
-
-
-        }
-
-    );
-
-
-    // REQUEST PAIRING CODE
-
-    if (!state.creds.registered) {
-
-
-        botStatus =
-            "Generating Pairing Code";
-
-
-        console.log(
-            "Generating pairing code..."
         );
 
-
-        // Small delay for connection initialization
-
-        await new Promise(
-            resolve => setTimeout(resolve, 1500)
-        );
-
-
-        pairingCode =
-            await sock.requestPairingCode(number);
-
-
-        pairingCode =
-            pairingCode?.match(/.{1,4}/g)?.join("-")
-            || pairingCode;
-
-
-        botStatus =
-            "Pairing Code Generated";
-
-
-        console.log("");
-        console.log("==============================");
-        console.log(
-            "PAIRING CODE:",
-            pairingCode
-        );
-        console.log("==============================");
-        console.log("");
-
-
-        return pairingCode;
-
-    }
-
-
-    // ALREADY REGISTERED
-
-    botStatus =
-        "Already Registered";
-
-
-    console.log(
-        "Session already registered."
-    );
-
-
-    return null;
+    });
 
 }
 
@@ -356,10 +315,9 @@ async function startBot(number) {
 
 app.listen(PORT, "0.0.0.0", () => {
 
-    console.log("");
-    console.log(
-        `Server running on port ${PORT}`
-    );
-    console.log("");
+    console.log("================================");
+    console.log("WHATSAPP PAIRING TEST SERVER");
+    console.log(`PORT: ${PORT}`);
+    console.log("================================");
 
 });
