@@ -65,9 +65,9 @@ class BotSession {
                 try {
                     let code = await this.sock.requestPairingCode(pairingNumber);
                     code = code?.match(/.{1,4}/g)?.join("-") || code;
+                    console.log('Pairing Code:', code);
                     const socketId = userSockets[this.userId];
                     if (socketId) io.to(socketId).emit('pairing-code', code);
-                    console.log('Pairing Code:', code);
                 } catch (err) {
                     console.log('Pairing error:', err.message);
                 }
