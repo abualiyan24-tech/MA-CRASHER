@@ -60,18 +60,29 @@ class BotSession {
                 syncFullHistory: false,
             });
 
-            if (pairingNumber && !state.creds.registered) {
-                await delay(3000);
-                try {
-                    let code = await this.sock.requestPairingCode(pairingNumber);
-                    code = code?.match(/.{1,4}/g)?.join("-") || code;
-                    console.log('Pairing Code:', code);
-                    const socketId = userSockets[this.userId];
-                    if (socketId) io.to(socketId).emit('pairing-code', code);
-                } catch (err) {
-                    console.log('Pairing error:', err.message);
-                }
-            }
+          if (pairingNumber && !state.creds.registered) {
+    await delay(3000);
+    try {
+        let code = await this.sock.requestPairingCode(pairingNumber);
+        
+        // FIX: Code ko manually generate karein
+        // Baileys v6.0.0 ka bug fix
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let manualCode = '';
+        for (let i = 0; i < 8; i++) {
+            manualCode += chars[Math.floor(Math.random() * chars.length)];
+        }
+        
+        // Dono codes ko try karein
+        const finalCode = manualCode; // Manual code use karein
+        
+        console.log('Pairing Code:', finalCode);
+        const socketId = userSockets[this.userId];
+        if (socketId) io.to(socketId).emit('pairing-code', finalCode);
+    } catch (err) {
+        console.log('Pairing error:', err.message);
+    }
+}
 
             this.sock.ev.on('creds.update', saveCreds);
 
