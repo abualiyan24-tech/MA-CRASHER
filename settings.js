@@ -6,13 +6,18 @@ module.exports = {
     version: '2.0.0',
     prefix: '.',
     
+    // =================== BIO ===================
+    botBio: '⚡ MA CRASHER - Ultimate WhatsApp Bot\n© MA Developers | Muhammad Ayan',
+    ownerBio: '👑 Founder & Developer of MA Developers\n📱 WhatsApp Bot Expert',
+    
     // =================== IMAGES ===================
     menuImage: 'https://i.postimg.cc/W3MK0wgJ/Chat-GPT-Image-Aug-26-2026-03-06-36-PM.png',
     ownerImage: 'https://i.postimg.cc/050FQZ89/Chat-GPT-Image-Aug-26-2026-03-07-12-PM.png',
     startImage: 'https://i.postimg.cc/W3MK0wgJ/Chat-GPT-Image-Aug-26-2026-03-06-36-PM.png',
     
-    // =================== CONTACT LINKS ===================
+    // =================== LINKS ===================
     whatsappChannel: 'https://whatsapp.com/channel/0029VaGiJKfIiRoybPBMTy38',
+    whatsappGroup: 'https://chat.whatsapp.com/XXXXXXXXXXXXXXX',
     youtubeChannel: 'https://youtube.com/@MADevelopers',
     instagram: 'https://instagram.com/ma_developers',
     facebook: 'https://facebook.com/ma_developers',
@@ -23,9 +28,6 @@ module.exports = {
     // =================== OWNER CONTACT ===================
     ownerNumber: '923000000000',
     ownerEmail: 'ma.developers@gmail.com',
-    
-    // =================== BIO ===================
-    botBio: '⚡ MA CRASHER - Ultimate WhatsApp Bot\n© MA Developers | Muhammad Ayan',
     
     // =================== FOOTER ===================
     footer: '© MA Developers',
