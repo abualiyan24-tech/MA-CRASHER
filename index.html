@@ -53,13 +53,23 @@
             statusEl.style.display = 'block';
         }
 
+        // Socket Connect Check
+        socket.on('connect', () => {
+            console.log('Socket connected!');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Socket disconnected!');
+            setStatus('Connection lost! Please refresh.', 'error');
+        });
+
+        // Button Click Handler
         requestBtn.addEventListener('click', () => {
             const number = phoneInput.value.replace(/\D/g, '');
             if (!number || number.length < 10) {
                 setStatus('Please enter a valid number!', 'error');
                 return;
             }
-            requestBtn.disabled = true;
             requestBtn.textContent = 'Connecting...';
             setStatus('Connecting to WhatsApp...', 'success');
             const userId = 'user_' + Math.random().toString(36).substr(2, 9);
@@ -68,7 +78,6 @@
         });
 
         socket.on('pairing-code', (code) => {
-            requestBtn.disabled = false;
             requestBtn.textContent = 'Connect WhatsApp';
             setStatus('Pairing code generated!', 'success');
             codeDisplay.style.display = 'block';
@@ -76,7 +85,6 @@
         });
 
         socket.on('pair-error', (msg) => {
-            requestBtn.disabled = false;
             requestBtn.textContent = 'Connect WhatsApp';
             setStatus(msg || 'Error!', 'error');
         });
