@@ -1,513 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MA CRASHER</title>
-
     <style>
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
-
-        body {
-            min-height: 100vh;
-            background:
-                radial-gradient(
-                    circle at top,
-                    #251014 0%,
-                    #0a0a0a 45%,
-                    #050505 100%
-                );
-
-            color: #fff;
-
-            display: flex;
-            justify-content: center;
-            align-items: center;
-
-            padding: 20px;
-        }
-
-        .card {
-            width: 100%;
-            max-width: 420px;
-
-            background: rgba(17, 17, 17, 0.96);
-
-            border: 1px solid #292929;
-
-            border-radius: 22px;
-
-            padding: 35px;
-
-            text-align: center;
-
-            box-shadow:
-                0 20px 60px rgba(0, 0, 0, 0.5);
-        }
-
-        .logo {
-            width: 90px;
-            height: 90px;
-
-            object-fit: cover;
-
-            border-radius: 50%;
-
-            margin-bottom: 20px;
-
-            border: 2px solid #ff4757;
-
-            box-shadow:
-                0 0 25px rgba(255, 71, 87, 0.25);
-        }
-
-        h1 {
-            color: #ff4757;
-
-            font-size: 32px;
-
-            margin-bottom: 8px;
-
-            letter-spacing: 1px;
-        }
-
-        .subtitle {
-            color: #888;
-
-            margin-bottom: 25px;
-        }
-
-        .input-group {
-            margin-bottom: 15px;
-        }
-
-        input {
-            width: 100%;
-
-            padding: 15px;
-
-            background: #090909;
-
-            border: 1px solid #292929;
-
-            border-radius: 12px;
-
-            color: #fff;
-
-            font-size: 15px;
-
-            outline: none;
-
-            transition: 0.2s;
-        }
-
-        input:focus {
-            border-color: #ff4757;
-
-            box-shadow:
-                0 0 0 3px
-                rgba(255, 71, 87, 0.08);
-        }
-
-        .btn {
-            width: 100%;
-
-            padding: 15px;
-
-            background: #ff4757;
-
-            color: white;
-
-            border: none;
-
-            border-radius: 12px;
-
-            font-size: 15px;
-
-            font-weight: bold;
-
-            cursor: pointer;
-
-            transition: 0.2s;
-        }
-
-        .btn:hover {
-            background: #ff5968;
-
-            transform: translateY(-1px);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-
-            cursor: not-allowed;
-
-            transform: none;
-        }
-
-        #status {
-            display: none;
-
-            margin-top: 18px;
-
-            padding: 12px;
-
-            border-radius: 10px;
-
-            font-size: 14px;
-
-            line-height: 1.4;
-        }
-
-        .success {
-            display: block !important;
-
-            background:
-                rgba(46, 213, 115, 0.08);
-
-            color: #2ed573;
-
-            border:
-                1px solid
-                rgba(46, 213, 115, 0.2);
-        }
-
-        .error {
-            display: block !important;
-
-            background:
-                rgba(255, 71, 87, 0.08);
-
-            color: #ff4757;
-
-            border:
-                1px solid
-                rgba(255, 71, 87, 0.2);
-        }
-
-        #codeDisplay {
-            display: none;
-
-            margin-top: 20px;
-
-            padding: 20px;
-
-            background: #080808;
-
-            border:
-                1px dashed #ff4757;
-
-            border-radius: 12px;
-
-            cursor: pointer;
-
-            user-select: none;
-        }
-
-        .code-label {
-            display: block;
-
-            color: #777;
-
-            font-size: 12px;
-
-            margin-bottom: 8px;
-        }
-
-        #pairingCode {
-            color: #ff4757;
-
-            font-size: 28px;
-
-            font-weight: bold;
-
-            letter-spacing: 4px;
-        }
-
-        footer {
-            margin-top: 22px;
-
-            color: #555;
-
-            font-size: 12px;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { background: #0a0a0a; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .card { background: #111; border: 1px solid #222; border-radius: 20px; padding: 40px; width: 90%; max-width: 400px; text-align: center; }
+        .card img { width: 80px; height: 80px; border-radius: 50%; margin-bottom: 20px; border: 2px solid #ff4757; }
+        .card h1 { color: #ff4757; margin-bottom: 10px; font-size: 2rem; }
+        .card p { color: #888; margin-bottom: 20px; }
+        .input-group { margin-bottom: 20px; }
+        .input-group input { width: 100%; padding: 15px; background: #0a0a0a; border: 1px solid #222; border-radius: 10px; color: #fff; font-size: 1rem; outline: none; }
+        .input-group input:focus { border-color: #ff4757; }
+        .btn { width: 100%; padding: 15px; background: #ff4757; color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        .btn:hover { background: #ff6b81; }
+        .btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        #status { margin-top: 20px; padding: 10px; border-radius: 10px; display: none; font-size: 0.9rem; }
+        .success { background: rgba(46,213,115,0.1); color: #2ed573; }
+        .error { background: rgba(255,71,87,0.1); color: #ff4757; }
+        #codeDisplay { margin-top: 20px; padding: 20px; background: #0a0a0a; border: 1px dashed #ff4757; border-radius: 10px; font-size: 2rem; font-weight: bold; color: #ff4757; display: none; cursor: pointer; }
+        footer { margin-top: 20px; font-size: 0.8rem; color: #555; }
     </style>
-
 </head>
-
 <body>
-
     <div class="card">
-
-        <img
-            class="logo"
-            src="https://i.postimg.cc/050FQZ89/Chat-GPT-Image-Aug-26-2026-03-07-12-PM.png"
-            alt="MA CRASHER"
-        >
-
+        <img src="https://i.postimg.cc/050FQZ89/Chat-GPT-Image-Aug-26-2026-03-07-12-PM.png" alt="MA CRASHER">
         <h1>MA CRASHER</h1>
-
-        <p class="subtitle">
-            WhatsApp Bot
-        </p>
-
+        <p>WhatsApp Bot</p>
         <div class="input-group">
-
-            <input
-                type="tel"
-                id="phone"
-                autocomplete="tel"
-                placeholder="923000000000"
-            >
-
+            <input type="tel" id="phone" placeholder="Enter WhatsApp number (e.g. 923000000000)">
         </div>
-
-        <button
-            class="btn"
-            id="requestPairing"
-        >
-            Connect WhatsApp
-        </button>
-
+        <button class="btn" id="requestPairing">Connect WhatsApp</button>
         <div id="status"></div>
-
-        <div
-            id="codeDisplay"
-            title="Click to copy"
-        >
-
-            <span class="code-label">
-                Pairing Code
-            </span>
-
-            <span id="pairingCode">
-                ----
-            </span>
-
-        </div>
-
-        <footer>
-            © MA Developers | Muhammad Ayan
-        </footer>
-
+        <div id="codeDisplay" onclick="copyCode()"><span id="pairingCode">0000 0000</span></div>
+        <footer>© MA Developers | Muhammad Ayan</footer>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-
     <script>
-
         const socket = io();
+        const phoneInput = document.getElementById('phone');
+        const requestBtn = document.getElementById('requestPairing');
+        const statusEl = document.getElementById('status');
+        const codeDisplay = document.getElementById('codeDisplay');
+        const pairingCode = document.getElementById('pairingCode');
 
-        const phoneInput =
-            document.getElementById("phone");
-
-        const requestBtn =
-            document.getElementById(
-                "requestPairing"
-            );
-
-        const statusEl =
-            document.getElementById("status");
-
-        const codeDisplay =
-            document.getElementById(
-                "codeDisplay"
-            );
-
-        const pairingCode =
-            document.getElementById(
-                "pairingCode"
-            );
-
-        let currentCode = "";
-
-        function setStatus(
-            message,
-            type
-        ) {
-
-            statusEl.textContent =
-                message;
-
-            statusEl.className =
-                type || "";
-
-            statusEl.style.display =
-                "block";
+        function setStatus(msg, type) {
+            statusEl.textContent = msg;
+            statusEl.className = type;
+            statusEl.style.display = 'block';
         }
 
-        requestBtn.addEventListener(
-            "click",
-            () => {
-
-                const number =
-                    phoneInput.value
-                        .replace(/\D/g, "");
-
-                if (
-                    !number ||
-                    number.length < 10
-                ) {
-
-                    setStatus(
-                        "Please enter a valid WhatsApp number.",
-                        "error"
-                    );
-
-                    return;
-                }
-
-                requestBtn.disabled =
-                    true;
-
-                requestBtn.textContent =
-                    "Connecting...";
-
-                codeDisplay.style.display =
-                    "none";
-
-                setStatus(
-                    "Connecting to WhatsApp...",
-                    "success"
-                );
-
-                const userId =
-                    "user_" +
-                    Math.random()
-                        .toString(36)
-                        .substring(2, 11);
-
-                socket.emit(
-                    "set-user",
-                    userId
-                );
-
-                socket.emit(
-                    "pair-request",
-                    {
-                        userId,
-                        number
-                    }
-                );
+        requestBtn.addEventListener('click', () => {
+            const number = phoneInput.value.replace(/\D/g, '');
+            if (!number || number.length < 10) {
+                setStatus('Please enter a valid number!', 'error');
+                return;
             }
-        );
+            requestBtn.disabled = true;
+            requestBtn.textContent = 'Connecting...';
+            setStatus('Connecting to WhatsApp...', 'success');
+            const userId = 'user_' + Math.random().toString(36).substr(2, 9);
+            socket.emit('set-user', userId);
+            socket.emit('pair-request', { userId, number });
+        });
 
-        socket.on(
-            "pairing-code",
-            (code) => {
+        socket.on('pairing-code', (code) => {
+            requestBtn.disabled = false;
+            requestBtn.textContent = 'Connect WhatsApp';
+            setStatus('Pairing code generated!', 'success');
+            codeDisplay.style.display = 'block';
+            pairingCode.textContent = code;
+        });
 
-                currentCode = code;
+        socket.on('pair-error', (msg) => {
+            requestBtn.disabled = false;
+            requestBtn.textContent = 'Connect WhatsApp';
+            setStatus(msg || 'Error!', 'error');
+        });
 
-                requestBtn.disabled =
-                    false;
-
-                requestBtn.textContent =
-                    "Connect WhatsApp";
-
-                setStatus(
-                    "Pairing code generated. Enter it in WhatsApp.",
-                    "success"
-                );
-
-                codeDisplay.style.display =
-                    "block";
-
-                pairingCode.textContent =
-                    code;
+        socket.on('connection-status', (status) => {
+            if (status && status.connected) {
+                setStatus('✅ Connected! Bot is active!', 'success');
+                setTimeout(() => location.reload(), 3000);
             }
-        );
+        });
 
-        socket.on(
-            "pair-error",
-            (message) => {
-
-                requestBtn.disabled =
-                    false;
-
-                requestBtn.textContent =
-                    "Connect WhatsApp";
-
-                setStatus(
-                    message ||
-                    "Pairing failed.",
-                    "error"
-                );
-            }
-        );
-
-        socket.on(
-            "connection-status",
-            (status) => {
-
-                if (
-                    status &&
-                    status.connected
-                ) {
-
-                    setStatus(
-                        "Connected! Bot is active.",
-                        "success"
-                    );
-
-                    requestBtn.disabled =
-                        false;
-
-                    requestBtn.textContent =
-                        "Connected";
-                }
-            }
-        );
-
-        codeDisplay.addEventListener(
-            "click",
-            async () => {
-
-                if (!currentCode) {
-                    return;
-                }
-
-                try {
-
-                    await navigator
-                        .clipboard
-                        .writeText(
-                            currentCode.replace(
-                                /-/g,
-                                ""
-                            )
-                        );
-
-                    setStatus(
-                        "Pairing code copied.",
-                        "success"
-                    );
-
-                } catch (err) {
-
-                    setStatus(
-                        "Copy failed. Please copy the code manually.",
-                        "error"
-                    );
-                }
-            }
-        );
-
+        function copyCode() {
+            const code = pairingCode.textContent;
+            if (code !== '0000 0000') navigator.clipboard.writeText(code.replace(/\s/g, ''));
+        }
     </script>
-
 </body>
-
 </html>
